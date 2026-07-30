@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HolyVK",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Добавляет ники из журнала прямо в чаты VK для модераторов!",
   "permissions": [
     "alarms",
@@ -37,8 +37,6 @@
         "https://web.vk.me/*"
       ],
       "js": [
-        "holyvk-config.js",
-        "holyvk-crypto.js",
         "content.js"
       ],
       "css": [

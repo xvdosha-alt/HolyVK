@@ -2,6 +2,7 @@ const runtime = globalThis.browser ?? globalThis.chrome;
 const STAFF_REFRESH_MS = 10 * 60 * 1000;
 const SETTINGS_KEY = "holyvk_settings";
 const STAFF_STORAGE_KEY = "holyvk_staff_cache";
+const MSG_TIMEOUT_MS = 8000;
 
 const RANKS = [
   "Неизвестно",
@@ -135,29 +136,45 @@ async function loadStaffFromStorage() {
   return applyStaffCache(result[STAFF_STORAGE_KEY], true);
 }
 
-async function saveStaffToStorage(data, fetchedAt) {
-  await runtime.storage.local.set({
-    [STAFF_STORAGE_KEY]: { data, fetchedAt },
-  });
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(label || "timeout")), ms);
+    }),
+  ]);
 }
 
-async function fetchStaffDirect() {
-  const payload = await holyvkFetchStaffViaProxy();
-  applyStaffData(payload.data, {
-    stale: false,
-    fetchedAt: payload.fetchedAt,
-  });
-  await saveStaffToStorage(payload.data, payload.fetchedAt);
-  return true;
-}
-
-async function reloadStaff() {
+async function loadStaffFromBackground(forceRefresh = false) {
   try {
-    await fetchStaffDirect();
+    const response = await withTimeout(
+      runtime.runtime.sendMessage({
+        action: "getStaff",
+        forceRefresh,
+      }),
+      MSG_TIMEOUT_MS,
+      "background timeout",
+    );
+    if (response?.success && response.data) {
+      applyStaffData(response.data, {
+        stale: response.stale,
+        fetchedAt: response.fetchedAt,
+      });
+      return true;
+    }
+    console.warn("[HolyVK] background:", response?.error || "empty");
+    return false;
   } catch (err) {
-    console.warn("[HolyVK] fetch failed:", err?.message || err);
-    const ok = await loadStaffFromStorage();
-    if (!ok) return false;
+    console.warn("[HolyVK] background:", err?.message || err);
+    return false;
+  }
+}
+
+async function reloadStaff(forceRefresh = false) {
+  const fromBg = await loadStaffFromBackground(forceRefresh);
+  if (!fromBg) {
+    const fromCache = await loadStaffFromStorage();
+    if (!fromCache) return false;
   }
   refreshAllNicks();
   return true;
@@ -257,7 +274,8 @@ function isMessengerPage() {
     path.startsWith("/im/") ||
     path.startsWith("/im?") ||
     path.includes("/mail") ||
-    path.includes("/write")
+    path.includes("/write") ||
+    path.includes("/convo")
   );
 }
 
@@ -284,9 +302,9 @@ async function init() {
   setTimeout(initObserver, 1000);
   refreshAllNicks();
 
-  await reloadStaff();
+  void reloadStaff(true);
   setInterval(() => {
-    void reloadStaff();
+    void reloadStaff(false);
   }, STAFF_REFRESH_MS);
 }
 
