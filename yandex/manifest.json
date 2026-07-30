@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "HolyVK",
+  "version": "1.0.0",
+  "description": "Добавляет ники из журнала прямо в чаты VK для модераторов!",
+  "permissions": ["activeTab", "alarms"],
+  "host_permissions": [
+    "https://journal.holyworld.me/*",
+    "https://vk.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://vk.com/im*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
