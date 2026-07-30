@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="popup.css" />
   </head>
-  <body>
+  <body data-theme="light">
     <div class="shell">
       <header class="hero">
         <div class="brand">
@@ -25,6 +25,24 @@
         <div class="preview-row">
           <span class="fake-name">Имя Фамилия</span>
           <span class="badge" id="previewBadge"></span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Тема</h2>
+        <div class="presets">
+          <label class="chip">
+            <input type="radio" name="uiTheme" value="system" />
+            <span>системная</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="uiTheme" value="light" />
+            <span>светлая</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="uiTheme" value="dark" />
+            <span>тёмная</span>
+          </label>
         </div>
       </section>
 
@@ -62,7 +80,7 @@
         </div>
       </section>
 
-      <section>
+      <section id="templateSection" hidden>
         <h2>Шаблон</h2>
         <input id="template" type="text" spellcheck="false" />
         <p class="hint"><code>{nick}</code> и <code>{rank}</code></p>
@@ -72,9 +90,9 @@
         <h2>Тон ника</h2>
         <div class="tone">
           <div class="tone-labels">
-            <span>чёрный</span>
+            <span>слабее</span>
             <span id="toneValue">92%</span>
-            <span>белый</span>
+            <span>контрастнее</span>
           </div>
           <input
             id="nickTone"
@@ -87,13 +105,48 @@
         </div>
       </section>
 
+      <section>
+        <h2>Подложка</h2>
+        <div class="presets" style="margin-bottom: 10px">
+          <label class="chip">
+            <input type="radio" name="badgeTint" value="dark" />
+            <span>тёмная</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="badgeTint" value="light" />
+            <span>светлая</span>
+          </label>
+        </div>
+        <div class="tone">
+          <div class="tone-labels">
+            <span>прозрачная</span>
+            <span id="badgeOpacityValue">12%</span>
+            <span>плотная</span>
+          </div>
+          <input
+            id="badgeOpacity"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value="12"
+          />
+        </div>
+      </section>
+
       <section class="last">
         <label class="toggle">
           <input type="checkbox" id="colorizeRank" />
           <span class="toggle-ui" aria-hidden="true"></span>
           <span class="toggle-text">
             <strong>Цвет должности</strong>
-            <small>как в игре</small>
+          </span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="copyNickOnClick" />
+          <span class="toggle-ui" aria-hidden="true"></span>
+          <span class="toggle-text">
+            <strong>Копирование ника</strong>
           </span>
         </label>
       </section>

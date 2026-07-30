@@ -43,6 +43,10 @@ const DEFAULT_SETTINGS = {
   template: FORMAT_PRESETS.nick_pipe_rank,
   colorizeRank: true,
   nickTone: 92,
+  uiTheme: "system",
+  badgeOpacity: 12,
+  badgeTint: "dark",
+  copyNickOnClick: true,
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -82,10 +86,39 @@ function clampTone(value) {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-function nickToneColor(tone) {
-  const v = Math.round((clampTone(tone) / 100) * 255);
-  const hex = v.toString(16).padStart(2, "0");
+function normalizeUiTheme(value) {
+  return value === "light" || value === "dark" ? value : "system";
+}
+
+function resolveUiTheme(pref = settings.uiTheme) {
+  const mode = normalizeUiTheme(pref);
+  if (mode === "light" || mode === "dark") return mode;
+  return globalThis.matchMedia?.("(prefers-color-scheme: dark)")?.matches
+    ? "dark"
+    : "light";
+}
+
+function nickToneColor(tone, themePref = settings.uiTheme) {
+  const theme = resolveUiTheme(themePref);
+  const t = clampTone(tone) / 100;
+  // light UI → darker nick; dark UI → whiter nick (tone = intensity)
+  const v =
+    theme === "dark"
+      ? Math.round(160 + t * 95)
+      : Math.round(100 - t * 90);
+  const hex = Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0");
   return `#${hex}${hex}${hex}`;
+}
+
+function badgeBackground(opacity, tint = settings.badgeTint) {
+  const a = clampTone(opacity) / 100;
+  return normalizeBadgeTint(tint) === "light"
+    ? `rgba(255, 255, 255, ${a})`
+    : `rgba(0, 0, 0, ${a})`;
+}
+
+function normalizeBadgeTint(value) {
+  return value === "light" ? "light" : "dark";
 }
 
 function normalizeSettings(saved = {}) {
@@ -97,6 +130,17 @@ function normalizeSettings(saved = {}) {
       FORMAT_PRESETS[saved.preset] ||
       DEFAULT_SETTINGS.template,
     nickTone: clampTone(saved.nickTone ?? DEFAULT_SETTINGS.nickTone),
+    uiTheme: normalizeUiTheme(saved.uiTheme ?? DEFAULT_SETTINGS.uiTheme),
+    badgeOpacity: clampTone(
+      saved.badgeOpacity ?? DEFAULT_SETTINGS.badgeOpacity,
+    ),
+    badgeTint: normalizeBadgeTint(
+      saved.badgeTint ?? DEFAULT_SETTINGS.badgeTint,
+    ),
+    copyNickOnClick:
+      saved.copyNickOnClick !== undefined
+        ? Boolean(saved.copyNickOnClick)
+        : DEFAULT_SETTINGS.copyNickOnClick,
   };
   if (saved.format && !saved.preset) {
     next.preset = saved.format;
@@ -198,11 +242,35 @@ function createRankSpan(label, rank, baseColor) {
   return el;
 }
 
+async function copyNick(nickname) {
+  try {
+    await navigator.clipboard.writeText(nickname);
+    return true;
+  } catch (_) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = nickname;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
 function fillBadge(badge, nickname, rank) {
   const rankText = rankLabel(rank);
   const template = resolveTemplate(settings);
   const baseColor = nickToneColor(settings.nickTone);
   badge.style.color = baseColor;
+  badge.style.background = badgeBackground(settings.badgeOpacity);
+  badge.dataset.nickname = nickname;
   badge.replaceChildren();
 
   const parts = template.split(/(\{nick\}|\{rank\})/g);
@@ -242,10 +310,31 @@ function addNickToPeer(peerEl) {
   fillBadge(badge, staff.nickname, staff.rank);
 
   let title = "Должность: " + rankLabel(staff.rank);
+  if (settings.copyNickOnClick) {
+    badge.classList.add("custom-vk-nick--copyable");
+    title += "\nКлик — скопировать ник";
+  }
   if (staffStale && staffFetchedAt) {
     title += "\nКэш от " + formatCacheTime(staffFetchedAt);
   }
   badge.title = title;
+
+  if (settings.copyNickOnClick) {
+    badge.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const nick = badge.dataset.nickname || staff.nickname;
+      const ok = await copyNick(nick);
+      if (!ok) return;
+      badge.classList.add("custom-vk-nick--copied");
+      const prev = badge.title;
+      badge.title = "Скопировано: " + nick;
+      setTimeout(() => {
+        badge.classList.remove("custom-vk-nick--copied");
+        badge.title = prev;
+      }, 900);
+    });
+  }
 
   peerEl.appendChild(badge);
 }
@@ -296,6 +385,11 @@ async function init() {
         refreshAllNicks();
       }
     }
+  });
+
+  const schemeMq = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
+  schemeMq?.addEventListener?.("change", () => {
+    if (normalizeUiTheme(settings.uiTheme) === "system") refreshAllNicks();
   });
 
   await loadStaffFromStorage();

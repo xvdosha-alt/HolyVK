@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HolyVK",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "Добавляет ники из журнала прямо в чаты VK для модераторов!",
   "browser_specific_settings": {
     "gecko": {

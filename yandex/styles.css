@@ -6,13 +6,22 @@
   opacity: 1;
   display: inline-block;
   vertical-align: middle;
-  background: rgba(0, 0, 0, 0.12);
+  background: transparent;
   padding: 1px 5px;
   border-radius: 3px;
   max-width: 280px;
   overflow: hidden;
   white-space: pre;
   text-overflow: ellipsis;
+  user-select: none;
+}
+
+.custom-vk-nick--copyable {
+  cursor: pointer;
+}
+
+.custom-vk-nick--copied {
+  outline: 1px solid rgba(18, 184, 168, 0.7);
 }
 
 .custom-vk-nick__rank,

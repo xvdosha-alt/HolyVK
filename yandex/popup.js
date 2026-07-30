@@ -15,6 +15,10 @@ const DEFAULT_SETTINGS = {
   template: FORMAT_PRESETS.nick_pipe_rank,
   colorizeRank: true,
   nickTone: 92,
+  uiTheme: "system",
+  badgeOpacity: 12,
+  badgeTint: "dark",
+  copyNickOnClick: true,
 };
 
 const PREVIEW_POOL = [
@@ -40,10 +44,42 @@ function clampTone(value) {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-function nickToneColor(tone) {
-  const v = Math.round((clampTone(tone) / 100) * 255);
-  const hex = v.toString(16).padStart(2, "0");
+function normalizeUiTheme(value) {
+  return value === "light" || value === "dark" ? value : "system";
+}
+
+function normalizeBadgeTint(value) {
+  return value === "light" ? "light" : "dark";
+}
+
+function resolveUiTheme(pref) {
+  const mode = normalizeUiTheme(pref);
+  if (mode === "light" || mode === "dark") return mode;
+  return globalThis.matchMedia?.("(prefers-color-scheme: dark)")?.matches
+    ? "dark"
+    : "light";
+}
+
+function nickToneColor(tone, themePref) {
+  const theme = resolveUiTheme(themePref);
+  const t = clampTone(tone) / 100;
+  const v =
+    theme === "dark"
+      ? Math.round(160 + t * 95)
+      : Math.round(100 - t * 90);
+  const hex = Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0");
   return `#${hex}${hex}${hex}`;
+}
+
+function badgeBackground(opacity, tint) {
+  const a = clampTone(opacity) / 100;
+  return normalizeBadgeTint(tint) === "light"
+    ? `rgba(255, 255, 255, ${a})`
+    : `rgba(0, 0, 0, ${a})`;
+}
+
+function applyPopupTheme(themePref) {
+  document.body.dataset.theme = resolveUiTheme(themePref);
 }
 
 async function loadSettings() {
@@ -60,6 +96,19 @@ async function loadSettings() {
   settings.nickTone = clampTone(
     settings.nickTone ?? DEFAULT_SETTINGS.nickTone,
   );
+  settings.uiTheme = normalizeUiTheme(
+    settings.uiTheme ?? DEFAULT_SETTINGS.uiTheme,
+  );
+  settings.badgeOpacity = clampTone(
+    settings.badgeOpacity ?? DEFAULT_SETTINGS.badgeOpacity,
+  );
+  settings.badgeTint = normalizeBadgeTint(
+    settings.badgeTint ?? DEFAULT_SETTINGS.badgeTint,
+  );
+  settings.copyNickOnClick =
+    settings.copyNickOnClick !== undefined
+      ? Boolean(settings.copyNickOnClick)
+      : DEFAULT_SETTINGS.copyNickOnClick;
   return settings;
 }
 
@@ -71,18 +120,38 @@ function readForm() {
   const preset =
     document.querySelector('input[name="preset"]:checked')?.value ||
     DEFAULT_SETTINGS.preset;
+  const uiTheme = normalizeUiTheme(
+    document.querySelector('input[name="uiTheme"]:checked')?.value,
+  );
+  const badgeTint = normalizeBadgeTint(
+    document.querySelector('input[name="badgeTint"]:checked')?.value,
+  );
   const template = document.getElementById("template").value;
   const colorizeRank = document.getElementById("colorizeRank").checked;
+  const copyNickOnClick = document.getElementById("copyNickOnClick").checked;
   const nickTone = clampTone(document.getElementById("nickTone").value);
-  return { preset, template, colorizeRank, nickTone };
+  const badgeOpacity = clampTone(
+    document.getElementById("badgeOpacity").value,
+  );
+  return {
+    preset,
+    template,
+    colorizeRank,
+    copyNickOnClick,
+    nickTone,
+    uiTheme,
+    badgeOpacity,
+    badgeTint,
+  };
 }
 
-function renderPreview(template, colorizeRank, nickTone) {
+function renderPreview(form) {
   const badge = document.getElementById("previewBadge");
-  const tpl = template || FORMAT_PRESETS.nick_pipe_rank;
-  const baseColor = nickToneColor(nickTone);
+  const tpl = form.template || FORMAT_PRESETS.nick_pipe_rank;
+  const baseColor = nickToneColor(form.nickTone, form.uiTheme);
   badge.replaceChildren();
   badge.style.color = baseColor;
+  badge.style.background = badgeBackground(form.badgeOpacity, form.badgeTint);
   badge.classList.remove("flash");
   void badge.offsetWidth;
   badge.classList.add("flash");
@@ -98,7 +167,7 @@ function renderPreview(template, colorizeRank, nickTone) {
       const rank = document.createElement("span");
       rank.className = "rank";
       rank.textContent = PREVIEW_RANK;
-      rank.style.color = colorizeRank ? PREVIEW_RANK_COLOR : baseColor;
+      rank.style.color = form.colorizeRank ? PREVIEW_RANK_COLOR : baseColor;
       badge.appendChild(rank);
     } else if (part) {
       const sep = document.createElement("span");
@@ -109,6 +178,14 @@ function renderPreview(template, colorizeRank, nickTone) {
   }
 }
 
+function syncTemplateSection(preset) {
+  const section = document.getElementById("templateSection");
+  const templateInput = document.getElementById("template");
+  const isCustom = preset === "custom";
+  section.hidden = !isCustom;
+  templateInput.disabled = !isCustom;
+}
+
 function applyForm(settings) {
   const preset = FORMAT_PRESETS[settings.preset] ? settings.preset : "custom";
   const radio = document.querySelector(
@@ -116,29 +193,58 @@ function applyForm(settings) {
   );
   if (radio) radio.checked = true;
 
+  const themeRadio = document.querySelector(
+    `input[name="uiTheme"][value="${settings.uiTheme}"]`,
+  );
+  if (themeRadio) themeRadio.checked = true;
+
+  const tintRadio = document.querySelector(
+    `input[name="badgeTint"][value="${settings.badgeTint}"]`,
+  );
+  if (tintRadio) tintRadio.checked = true;
+
   const templateInput = document.getElementById("template");
   templateInput.value =
     settings.template ||
     FORMAT_PRESETS[preset] ||
     DEFAULT_SETTINGS.template;
-  templateInput.disabled = preset !== "custom";
+  syncTemplateSection(preset);
 
   document.getElementById("colorizeRank").checked = Boolean(
     settings.colorizeRank,
+  );
+  document.getElementById("copyNickOnClick").checked = Boolean(
+    settings.copyNickOnClick,
   );
 
   const tone = clampTone(settings.nickTone);
   document.getElementById("nickTone").value = String(tone);
   document.getElementById("toneValue").textContent = `${tone}%`;
 
-  renderPreview(templateInput.value, settings.colorizeRank, tone);
+  const badgeOpacity = clampTone(settings.badgeOpacity);
+  document.getElementById("badgeOpacity").value = String(badgeOpacity);
+  document.getElementById("badgeOpacityValue").textContent =
+    `${badgeOpacity}%`;
+
+  applyPopupTheme(settings.uiTheme);
+  renderPreview({
+    template: templateInput.value,
+    colorizeRank: settings.colorizeRank,
+    nickTone: tone,
+    uiTheme: settings.uiTheme,
+    badgeOpacity,
+    badgeTint: settings.badgeTint,
+  });
 }
 
 async function persist() {
   const form = readForm();
   document.getElementById("toneValue").textContent = `${form.nickTone}%`;
+  document.getElementById("badgeOpacityValue").textContent =
+    `${form.badgeOpacity}%`;
+  applyPopupTheme(form.uiTheme);
   await saveSettings(form);
-  renderPreview(form.template, form.colorizeRank, form.nickTone);
+  renderPreview(form);
 }
 
 async function init() {
@@ -151,13 +257,20 @@ async function init() {
       const templateInput = document.getElementById("template");
       if (preset !== "custom" && FORMAT_PRESETS[preset]) {
         templateInput.value = FORMAT_PRESETS[preset];
-        templateInput.disabled = true;
       } else {
-        templateInput.disabled = false;
         templateInput.focus();
       }
+      syncTemplateSection(preset);
       await persist();
     });
+  });
+
+  document.querySelectorAll('input[name="uiTheme"]').forEach((input) => {
+    input.addEventListener("change", persist);
+  });
+
+  document.querySelectorAll('input[name="badgeTint"]').forEach((input) => {
+    input.addEventListener("change", persist);
   });
 
   document.getElementById("template").addEventListener("input", async () => {
@@ -166,13 +279,25 @@ async function init() {
     );
     if (custom && !custom.checked) {
       custom.checked = true;
-      document.getElementById("template").disabled = false;
+      syncTemplateSection("custom");
     }
     await persist();
   });
 
   document.getElementById("colorizeRank").addEventListener("change", persist);
+  document
+    .getElementById("copyNickOnClick")
+    .addEventListener("change", persist);
   document.getElementById("nickTone").addEventListener("input", persist);
+  document.getElementById("badgeOpacity").addEventListener("input", persist);
+
+  const schemeMq = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
+  schemeMq?.addEventListener?.("change", () => {
+    const form = readForm();
+    if (form.uiTheme !== "system") return;
+    applyPopupTheme("system");
+    renderPreview(form);
+  });
 }
 
 init();
