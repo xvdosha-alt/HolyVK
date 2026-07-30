@@ -248,8 +248,22 @@ function initObserver() {
   document.querySelectorAll(".PeerTitle").forEach(addNickToPeer);
 }
 
+function isMessengerPage() {
+  const host = location.hostname.replace(/^www\./, "");
+  if (host === "web.vk.me" || host.endsWith(".vk.me")) return true;
+  const path = location.pathname || "";
+  return (
+    path === "/im" ||
+    path.startsWith("/im/") ||
+    path.startsWith("/im?") ||
+    path.includes("/mail") ||
+    path.includes("/write")
+  );
+}
+
 async function init() {
   if (globalThis.__holyvkInit) return;
+  if (!isMessengerPage()) return;
   globalThis.__holyvkInit = true;
 
   await loadSettings();

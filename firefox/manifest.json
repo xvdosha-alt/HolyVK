@@ -1,29 +1,28 @@
 {
   "manifest_version": 3,
   "name": "HolyVK",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Добавляет ники из журнала прямо в чаты VK для модераторов!",
   "browser_specific_settings": {
     "gecko": {
       "id": "holyvk@holyworld.local",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "required": [
-          "none"
-        ]
+        "required": ["none"]
       }
     },
     "gecko_android": {
       "strict_min_version": "142.0"
     }
   },
-  "permissions": [
-    "alarms",
-    "storage"
-  ],
+  "permissions": ["alarms", "storage"],
   "host_permissions": [
     "https://journal.dosha.pw/*",
-    "https://vk.com/*"
+    "https://vk.ru/*",
+    "https://*.vk.ru/*",
+    "https://vk.com/*",
+    "https://*.vk.com/*",
+    "https://web.vk.me/*"
   ],
   "action": {
     "default_title": "HolyVK",
@@ -35,26 +34,21 @@
     }
   },
   "background": {
-    "scripts": [
-      "holyvk-config.js",
-      "holyvk-crypto.js",
-      "background.js"
-    ]
+    "scripts": ["holyvk-config.js", "holyvk-crypto.js", "background.js"]
   },
   "content_scripts": [
     {
       "matches": [
-        "https://vk.com/im*"
+        "https://vk.ru/*",
+        "https://*.vk.ru/*",
+        "https://vk.com/*",
+        "https://*.vk.com/*",
+        "https://web.vk.me/*"
       ],
-      "js": [
-        "holyvk-config.js",
-        "holyvk-crypto.js",
-        "content.js"
-      ],
-      "css": [
-        "styles.css"
-      ],
-      "run_at": "document_end"
+      "js": ["holyvk-config.js", "holyvk-crypto.js", "content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end",
+      "all_frames": true
     }
   ],
   "icons": {
