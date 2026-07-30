@@ -26,8 +26,25 @@ function normalizeFullname(name) {
     .trim();
 }
 
+function formatCacheTime(timestamp) {
+  if (!timestamp) return "";
+  return new Date(timestamp).toLocaleString("ru-RU");
+}
+
 let apiUsers = [];
 let fullnameToNick = {};
+let staffStale = false;
+let staffFetchedAt = 0;
+
+function applyStaffData(data, meta = {}) {
+  apiUsers = data;
+  fullnameToNick = {};
+  apiUsers.forEach((user) => {
+    fullnameToNick[normalizeFullname(user.fullname)] = user.nickname;
+  });
+  staffStale = Boolean(meta.stale);
+  staffFetchedAt = meta.fetchedAt || 0;
+}
 
 function loadStaffFromBackground(forceRefresh = false) {
   return new Promise((resolve) => {
@@ -35,16 +52,22 @@ function loadStaffFromBackground(forceRefresh = false) {
       { action: "getStaff", forceRefresh },
       (response) => {
         if (response?.success && response.data) {
-          apiUsers = response.data;
-          fullnameToNick = {};
-          apiUsers.forEach((user) => {
-            fullnameToNick[normalizeFullname(user.fullname)] = user.nickname;
+          applyStaffData(response.data, {
+            stale: response.stale,
+            fetchedAt: response.fetchedAt,
           });
-          resolve();
-        } else {
-          console.error("❌ Ошибка API:", response?.error);
-          resolve();
+          if (response.stale) {
+            console.warn(
+              "HolyVK: журнал недоступен, используем сохранённые ники от",
+              formatCacheTime(response.fetchedAt),
+            );
+          }
+          resolve(true);
+          return;
         }
+
+        console.error("❌ Ошибка API:", response?.error);
+        resolve(false);
       },
     );
   });
@@ -65,7 +88,6 @@ function addNickToPeer(peerEl) {
 
   const titleEl = peerEl.querySelector(".PeerTitle__title");
   if (!titleEl) {
-    console.log("❌ Нет .PeerTitle__title");
     return;
   }
 
@@ -74,7 +96,6 @@ function addNickToPeer(peerEl) {
 
   const nickname = fullnameToNick[normalizeFullname(fullname)];
   if (!nickname) {
-    console.log("❌ Ник не найден в API");
     return;
   }
 
@@ -85,7 +106,11 @@ function addNickToPeer(peerEl) {
   const staff = apiUsers.find(
     (u) => normalizeFullname(u.fullname) === normalizeFullname(fullname),
   );
-  badge.title = "Должность: " + rankLabel(staff?.rank);
+  let title = "Должность: " + rankLabel(staff?.rank);
+  if (staffStale && staffFetchedAt) {
+    title += "\nКэш от " + formatCacheTime(staffFetchedAt);
+  }
+  badge.title = title;
 
   peerEl.appendChild(badge);
 }

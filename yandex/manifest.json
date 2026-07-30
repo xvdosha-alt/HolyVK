@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "HolyVK",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Добавляет ники из журнала прямо в чаты VK для модераторов!",
-  "permissions": ["activeTab", "alarms"],
+  "permissions": ["activeTab", "alarms", "storage"],
   "host_permissions": [
     "https://journal.holyworld.me/*",
     "https://vk.com/*"
