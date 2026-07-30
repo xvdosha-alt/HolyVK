@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HolyVK</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <h1>HolyVK</h1>
+            <p>Ники модерации в мессенджере</p>
+          </div>
+        </div>
+        <div class="live">
+          <span class="live-dot"></span>
+          как в чате
+        </div>
+      </header>
+
+      <section class="preview-panel">
+        <div class="preview-row">
+          <span class="fake-name">Имя Фамилия</span>
+          <span class="badge" id="previewBadge"></span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Формат</h2>
+        <div class="presets">
+          <label class="chip">
+            <input type="radio" name="preset" value="nick_pipe_rank" />
+            <span>ник | должность</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="preset" value="rank_bracket_nick" />
+            <span>[должность] ник</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="preset" value="nick_dash_rank" />
+            <span>ник — должность</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="preset" value="nick_dot_rank" />
+            <span>ник • должность</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="preset" value="nick_only" />
+            <span>только ник</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="preset" value="rank_only" />
+            <span>только должность</span>
+          </label>
+          <label class="chip">
+            <input type="radio" name="preset" value="custom" />
+            <span>свой шаблон</span>
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <h2>Шаблон</h2>
+        <input id="template" type="text" spellcheck="false" />
+        <p class="hint"><code>{nick}</code> и <code>{rank}</code></p>
+      </section>
+
+      <section>
+        <h2>Тон ника</h2>
+        <div class="tone">
+          <div class="tone-labels">
+            <span>чёрный</span>
+            <span id="toneValue">92%</span>
+            <span>белый</span>
+          </div>
+          <input
+            id="nickTone"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value="92"
+          />
+        </div>
+      </section>
+
+      <section class="last">
+        <label class="toggle">
+          <input type="checkbox" id="colorizeRank" />
+          <span class="toggle-ui" aria-hidden="true"></span>
+          <span class="toggle-text">
+            <strong>Цвет должности</strong>
+            <small>как в игре</small>
+          </span>
+        </label>
+      </section>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

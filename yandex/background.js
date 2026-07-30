@@ -1,4 +1,8 @@
-const STAFF_API = "https://journal.holyworld.me/srv/api/v1/staff";
+importScripts("holyvk-config.js", "holyvk-crypto.js");
+
+const runtime = globalThis.browser ?? globalThis.chrome;
+const storage = runtime.storage?.local ?? chrome.storage.local;
+
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const REFRESH_ALARM = "holyvk-refresh-staff";
 const STORAGE_KEY = "holyvk_staff_cache";
@@ -9,38 +13,21 @@ function isCacheValid() {
   return staffCache && Date.now() - staffCache.fetchedAt < CACHE_TTL_MS;
 }
 
-function loadPersistentCache() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(STORAGE_KEY, (result) => {
-      resolve(result[STORAGE_KEY] || null);
-    });
-  });
+async function loadPersistentCache() {
+  const result = await storage.get(STORAGE_KEY);
+  return result[STORAGE_KEY] || null;
 }
 
-function savePersistentCache(data, fetchedAt) {
-  return new Promise((resolve) => {
-    chrome.storage.local.set(
-      { [STORAGE_KEY]: { data, fetchedAt } },
-      () => resolve(),
-    );
-  });
+async function savePersistentCache(data, fetchedAt) {
+  await storage.set({ [STORAGE_KEY]: { data, fetchedAt } });
 }
 
-function fetchStaff() {
-  return fetch(STAFF_API, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then(async (data) => {
-      const fetchedAt = Date.now();
-      staffCache = { data, fetchedAt };
-      await savePersistentCache(data, fetchedAt);
-      return { data, stale: false, fetchedAt };
-    });
+async function fetchStaff() {
+  const payload = await holyvkFetchStaffViaProxy();
+  const fetchedAt = payload.fetchedAt || Date.now();
+  staffCache = { data: payload.data, fetchedAt };
+  await savePersistentCache(payload.data, fetchedAt);
+  return { data: payload.data, stale: false, fetchedAt };
 }
 
 async function getStaffFromPersistent() {
@@ -79,28 +66,33 @@ async function getStaff(forceRefresh) {
   }
 }
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+runtime.runtime.onMessage.addListener((message) => {
   if (message.action !== "getStaff") return;
 
-  getStaff(Boolean(message.forceRefresh))
-    .then((payload) => sendResponse({ success: true, ...payload }))
+  return getStaff(Boolean(message.forceRefresh))
+    .then((payload) => ({ success: true, ...payload }))
     .catch((err) => {
       console.error("API Error:", err);
-      sendResponse({ success: false, error: err.message });
+      return { success: false, error: err.message };
     });
-
-  return true;
 });
 
-chrome.alarms.create(REFRESH_ALARM, { periodInMinutes: 10 });
-chrome.alarms.onAlarm.addListener((alarm) => {
+runtime.alarms.create(REFRESH_ALARM, { periodInMinutes: 10 });
+runtime.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === REFRESH_ALARM) {
     fetchStaff().catch((err) => console.error("Staff refresh failed:", err));
   }
 });
 
-loadPersistentCache().then((persisted) => {
-  if (persisted?.data?.length) {
-    staffCache = persisted;
-  }
-});
+loadPersistentCache()
+  .then((persisted) => {
+    if (persisted?.data?.length) {
+      staffCache = persisted;
+      console.log("[HolyVK] cache", persisted.data.length);
+    }
+  })
+  .finally(() => {
+    fetchStaff()
+      .then((payload) => console.log("[HolyVK] fetch", payload.data.length))
+      .catch((err) => console.error("[HolyVK] fetch failed", err.message));
+  });

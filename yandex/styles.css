@@ -1,14 +1,24 @@
 .custom-vk-nick {
-  color: #666 !important;
+  color: #ebebeb !important;
   font-size: 12px !important;
-  font-weight: 400 !important;
+  font-weight: 500 !important;
   margin-left: 8px !important;
-  opacity: 0.7;
+  opacity: 1;
   display: inline-block;
   vertical-align: middle;
-  background: rgba(0, 0, 0, 0.07);
-  padding: 1px 4px;
+  background: rgba(0, 0, 0, 0.12);
+  padding: 1px 5px;
   border-radius: 3px;
+  max-width: 280px;
+  overflow: hidden;
+  white-space: pre;
+  text-overflow: ellipsis;
+}
+
+.custom-vk-nick__rank,
+.custom-vk-nick__nick,
+.custom-vk-nick__sep {
+  white-space: pre;
 }
 
 .PeerTitle {

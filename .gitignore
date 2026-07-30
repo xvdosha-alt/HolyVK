@@ -10,3 +10,7 @@ dist/
 .vscode/
 *.swp
 *.swo
+
+burmalda/.env
+burmalda/.venv/
+burmalda/__pycache__/

@@ -1,0 +1,21 @@
+[Unit]
+Description=HolyVK burmalda proxy
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/holyvk-burmalda
+EnvironmentFile=/opt/holyvk-burmalda/.env
+ExecStart=/opt/holyvk-burmalda/.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 8787 --workers 1
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/holyvk-burmalda
+
+[Install]
+WantedBy=multi-user.target

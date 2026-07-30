@@ -19,7 +19,17 @@ build() {
   rm -f "$zip"
   (
     cd "$dir"
-    zip -qr "$zip" manifest.json background.js content.js styles.css icons/
+    zip -qr "$zip" \
+      manifest.json \
+      background.js \
+      content.js \
+      styles.css \
+      popup.html \
+      popup.css \
+      popup.js \
+      holyvk-config.js \
+      holyvk-crypto.js \
+      icons/
   )
   echo "built $zip"
 }
