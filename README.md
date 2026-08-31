@@ -1,31 +1,36 @@
+EN | [RU](docs/README_RU.md)
+
 # HolyVK
 
-Браузерное расширение: в `vk.ru / web.vk.me` рядом с ФИО показывает игровой ник и должность модератора HolyWorld.
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
 
-## Варианты
 
-| Папка | Браузер |
+Browser extension: on `vk.ru / web.vk.me` it shows a HolyWorld moderator's in-game nick and rank next to the profile name.
+
+## Variants
+
+| Folder | Browser |
 |-------|---------|
 | `chrome/` | Chrome / Chromium |
 | `firefox/` | Firefox |
-| `yandex/` | Яндекс.Браузер |
+| `yandex/` | Yandex Browser |
 
-## Сборка
+## Build
 
 ```bash
 ./build.sh
 ```
 
-Архивы → `dist/` (или `OUT=../builds ./build.sh` из корня monorepo).
+Archives go to `dist/` (or `OUT=../builds ./build.sh` from the monorepo root).
 
-## Как работает (2.0)
+## How it works (2.0)
 
-1. Content-скрипт на `vk.ru / web.vk.me` тянет staff через прокси `journal.dosha.pw` (HMAC + AES), кэширует в `storage`.
-2. Background прогревает кэш по alarm.
-3. Popup: пресеты формата, свой шаблон `{nick}` / `{rank}`, цвет должности, тон ника (белый ↔ чёрный).
+1. Content script on `vk.ru / web.vk.me` fetches staff via proxy `journal.dosha.pw` (HMAC + AES), caches in `storage`.
+2. Background warms the cache on alarm.
+3. Popup: format presets, custom template `{nick}` / `{rank}`, rank color, nick tone (white <-> black).
 
-Прокси (опционально для деплоя): `burmalda/`.
+Proxy (optional for deploy): `burmalda/`.
 
-## Версия
+## Version
 
-`2.0.0` — в `manifest.json` каждого варианта.
+`2.0.0` - in `manifest.json` of each variant.
